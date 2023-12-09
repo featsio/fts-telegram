@@ -1,0 +1,123 @@
+{
+  "template": "https://github.com/ionelmc/cookiecutter-pylibrary",
+  "commit": "c21fe3381f1c6097e1b36fe19d389bcf4fce6454",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "full_name": "W. Augusto Andreoli",
+      "email": "andreoli@sent.com",
+      "website": "https://github.com/andreoliwa",
+      "project_name": "Feats Telegram",
+      "repo_name": "fts-telegram",
+      "repo_hosting": "github.com",
+      "repo_hosting_domain": "github.com",
+      "repo_username": "andreoliwa",
+      "repo_main_branch": "master",
+      "package_name": "fts_telegram",
+      "distribution_name": "fts-telegram",
+      "project_short_description": "Telegram crawler for Feats",
+      "release_date": "today",
+      "year_from": "2023",
+      "year_to": "2023",
+      "version": "0.0.0",
+      "version_manager": "bump2version",
+      "license": "MIT license",
+      "c_extension_support": "no",
+      "c_extension_optional": "no",
+      "c_extension_module": "_fts_telegram",
+      "c_extension_function": "longest",
+      "test_matrix_separate_coverage": "no",
+      "setup_py_uses_setuptools_scm": "no",
+      "pypi_badge": "yes",
+      "pypi_disable_upload": "no",
+      "allow_tests_inside_package": "no",
+      "pre_commit": "yes",
+      "formatter_quote_style": "double",
+      "command_line_interface": "click",
+      "command_line_interface_bin_name": "fts-telegram",
+      "coveralls": "no",
+      "codecov": "yes",
+      "scrutinizer": "no",
+      "codacy": "no",
+      "codacy_projectid": "[Get ID from https://app.codacy.com/gh/andreoliwa/fts-telegram/settings]",
+      "codeclimate": "no",
+      "sphinx_docs": "no",
+      "sphinx_theme": "sphinx-rtd-theme",
+      "sphinx_doctest": "no",
+      "sphinx_docs_hosting": "https://fts-telegram.readthedocs.io/",
+      "github_actions": "yes",
+      "github_actions_osx": "yes",
+      "github_actions_windows": "yes",
+      "__c_extension_optional_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__test_matrix_separate_coverage_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__setup_py_uses_setuptools_scm_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__pypi_badge_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__pypi_disable_upload_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__allow_tests_inside_package_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__coveralls_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__codecov_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__scrutinizer_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__codacy_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__codeclimate_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__sphinx_docs_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__sphinx_doctest_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__github_actions_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__github_actions_osx_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "__github_actions_windows_options": {
+        "yes": "True",
+        "no": "False"
+      },
+      "_extensions": [
+        "pylibrary.JsonQuoteExtension",
+        "jinja2_time.TimeExtension"
+      ],
+      "_template": "https://github.com/ionelmc/cookiecutter-pylibrary"
+    }
+  },
+  "directory": null
+}
