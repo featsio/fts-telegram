@@ -14,10 +14,23 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
-import click
+import typer
+
+from fts_telegram.lib import list_chats
+
+app = typer.Typer(no_args_is_help=True)
 
 
-@click.command()
-@click.argument("names", nargs=-1)
-def main(names):
-    click.echo(repr(names))
+@app.callback()
+def fts_telegram() -> None:
+    """Telegram crawler for Feats."""
+
+
+@app.command()
+def chats(names: list[str] = typer.Argument(None, help="Partial name of a chat"), verbose: bool = False) -> None:
+    """List chats by partial name."""
+    for chat in list_chats(names):
+        if verbose:
+            typer.echo(chat.stringify())
+        else:
+            typer.echo(f"{chat.name} (ID {chat.id})")

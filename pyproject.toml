@@ -27,10 +27,11 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-click = "*"
+typer = "*"
+Telethon = "*"
 
 [tool.poetry.scripts]
-fts-telegram = "fts_telegram.cli:main"
+fts-telegram = "fts_telegram.cli:app"
 
 [tool.poetry.urls]
 "Changelog" = "https://github.com/andreoliwa/fts-telegram/blob/master/CHANGELOG.rst"
@@ -78,4 +79,6 @@ forced-separate = ["conftest"]
 force-single-line = true
 
 [tool.ruff.per-file-ignores]
+# B008 Do not perform function call ? in argument defaults
+"src/fts_telegram/cli.py" = ["B008"]
 "ci/*" = ["S"]
