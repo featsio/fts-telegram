@@ -49,7 +49,7 @@ default_context:
     repo_username: "andreoliwa"
     scrutinizer: "no"
     setup_py_uses_setuptools_scm: "no"
-    sphinx_docs: "no"
+    sphinx_docs: "yes"
     sphinx_docs_hosting: "https://fts-telegram.readthedocs.io/"
     sphinx_doctest: "no"
     sphinx_theme: "sphinx-rtd-theme"

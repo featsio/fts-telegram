@@ -7,12 +7,17 @@ Overview
 .. list-table::
     :stub-columns: 1
 
+    * - docs
+      - |docs|
     * - tests
       - | |github-actions|
         | |codecov|
     * - package
       - | |version| |wheel| |supported-versions| |supported-implementations|
         | |commits-since|
+.. |docs| image:: https://readthedocs.org/projects/fts-telegram/badge/?style=flat
+    :target: https://fts-telegram.readthedocs.io/
+    :alt: Documentation Status
 
 .. |github-actions| image:: https://github.com/andreoliwa/fts-telegram/actions/workflows/github-actions.yml/badge.svg
     :alt: GitHub Actions Build Status
@@ -66,12 +71,7 @@ Documentation
 =============
 
 
-To use the project:
-
-.. code-block:: python
-
-    import fts_telegram
-    fts_telegram.longest()
+https://fts-telegram.readthedocs.io/
 
 
 Development
