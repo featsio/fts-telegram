@@ -15,8 +15,12 @@ Why does this file exist, and why not put this in __main__?
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 import typer
+from orjson import OPT_OMIT_MICROSECONDS
+from orjson import OPT_SORT_KEYS
+from orjson import dumps
 
-from fts_telegram.lib import list_chats
+from fts_telegram.lib import fetch_chats
+from fts_telegram.lib import fetch_messages
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -27,10 +31,34 @@ def fts_telegram() -> None:
 
 
 @app.command()
-def chats(names: list[str] = typer.Argument(None, help="Partial name of a chat"), verbose: bool = False) -> None:
+def chats(
+    verbose: bool = False,
+    names: list[str] = typer.Argument(None, help="Partial name of a chat"),
+) -> None:
     """List chats by partial name."""
-    for chat in list_chats(names):
+    for chat in fetch_chats(names):
         if verbose:
             typer.echo(chat.stringify())
         else:
             typer.echo(f"{chat.name} (ID {chat.id})")
+
+
+@app.command()
+def messages(
+    limit: int = typer.Option(
+        None,
+        "--limit",
+        "-l",
+        help="Limit the number of messages to return; 0 for no limit",
+    ),
+    start_date: str = typer.Option(
+        None,
+        "--start-date",
+        "-s",
+        help="Start date in YYYY-MM-DD format or English (today, yesterday...)",
+    ),
+    chat_names: list[str] = typer.Argument(None, help="Partial name of a chat"),
+) -> None:
+    """List messages of multiple chats, as JSON."""
+    json_dict = fetch_messages(limit, start_date, chat_names)
+    typer.echo(dumps(json_dict, option=OPT_SORT_KEYS | OPT_OMIT_MICROSECONDS))
