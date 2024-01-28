@@ -6,12 +6,11 @@ Telegram crawler for Feats.
 
 ## Installation
 
-1. Install [Python 3.11](https://www.python.org/downloads/release/python-3117/) directly or using [pyenv](https://github.com/pyenv/pyenv).
-   It still doesn't work with the latest Python 3.12 (some packages don't install).
+1. Install [Python 3.11 or greater](https://www.python.org/downloads/), either directly or using [pyenv](https://github.com/pyenv/pyenv).
 2. Install [pipx](https://github.com/pypa/pipx).
 3. Install this project using pipx:
     ```shell
-    pipx install --python python3.11 git+https://github.com/andreoliwa/fts-telegram
+    pipx install git+https://github.com/andreoliwa/fts-telegram
    ```
 4. Follow the steps to obtain a Telegram API ID and hash on [Creating your Telegram Application](https://core.telegram.org/api/obtaining_api_id).
 5. Fill in the environment variables:

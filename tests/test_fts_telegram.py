@@ -7,5 +7,5 @@ def test_main():
     runner = CliRunner()
     result = runner.invoke(app, [])
 
-    assert result.output == "()\n"
+    assert "Telegram crawler for Feats" in result.output
     assert result.exit_code == 0
