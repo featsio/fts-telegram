@@ -2,6 +2,7 @@ import os
 from dataclasses import asdict
 from dataclasses import dataclass
 from datetime import datetime
+from functools import cache
 from functools import wraps
 
 import maya
@@ -9,8 +10,14 @@ from telethon import TelegramClient
 from telethon.tl.custom import Dialog
 from telethon.tl.custom import Message
 
-# Use your own values from https://my.telegram.org/apps
-CLIENT = TelegramClient("fts-telegram", int(os.environ["TELEGRAM_API_ID"]), os.environ["TELEGRAM_API_HASH"])
+
+@cache
+def telegram_client() -> TelegramClient:
+    """Return a TelegramClient instance.
+
+    Use your own values from https://my.telegram.org/apps.
+    """
+    return TelegramClient("fts-telegram", int(os.environ["TELEGRAM_API_ID"]), os.environ["TELEGRAM_API_HASH"])
 
 
 def login_with_phone_password(func):
@@ -18,11 +25,11 @@ def login_with_phone_password(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if CLIENT.loop.is_running():
+        if telegram_client().loop.is_running():
             return func(*args, **kwargs)
 
-        CLIENT.start(lambda: os.environ["TELEGRAM_PHONE"], lambda: os.environ["TELEGRAM_PASSWORD"])
-        return CLIENT.loop.run_until_complete(func(*args, **kwargs))
+        telegram_client().start(lambda: os.environ["TELEGRAM_PHONE"], lambda: os.environ["TELEGRAM_PASSWORD"])
+        return telegram_client().loop.run_until_complete(func(*args, **kwargs))
 
     return wrapper
 
@@ -31,7 +38,7 @@ def login_with_phone_password(func):
 async def fetch_chats(partial_names: list[str]) -> list[Dialog]:
     """List chats by partial name (case-insensitive)."""
     dialogs = []
-    async for dialog in CLIENT.iter_dialogs():
+    async for dialog in telegram_client().iter_dialogs():
         for name in partial_names:
             if name.casefold() in dialog.name.casefold():
                 dialogs.append(dialog)
@@ -75,7 +82,7 @@ async def fetch_messages(
     senders = {}
     messages = []
     for chat in await fetch_chats(chat_names):  # type: Dialog
-        async for msg in CLIENT.iter_messages(
+        async for msg in telegram_client().iter_messages(
             chat.id,
             limit=limit,
             reverse=reverse,
@@ -84,7 +91,7 @@ async def fetch_messages(
             assert isinstance(msg, Message)
 
             if msg.sender_id not in senders:
-                entity = await CLIENT.get_entity(msg.sender_id)
+                entity = await telegram_client().get_entity(msg.sender_id)
                 senders[msg.sender_id] = (
                     entity.title if hasattr(entity, "title") else f"{entity.first_name} {entity.last_name}"
                 )
