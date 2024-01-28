@@ -14,11 +14,16 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
+from __future__ import annotations
+
+from dataclasses import asdict
+
 import typer
 from orjson import OPT_OMIT_MICROSECONDS
 from orjson import OPT_SORT_KEYS
 from orjson import dumps
 
+from fts_telegram.lib import dump_as_logseq_markdown
 from fts_telegram.lib import fetch_chats
 from fts_telegram.lib import fetch_messages
 
@@ -40,6 +45,7 @@ def chats(
         if verbose:
             typer.echo(chat.stringify())
         else:
+            # TODO: return JSON following some schema.org
             typer.echo(f"{chat.name} (ID {chat.id})")
 
 
@@ -55,10 +61,16 @@ def messages(
         None,
         "--start-date",
         "-s",
-        help="Start date in YYYY-MM-DD format or English (today, yesterday...)",
+        help="Start date in YYYY-MM-DD format or English (today, yesterday...). If not provided, defaults to now.",
     ),
+    markdown: bool = typer.Option(False, "--markdown", "-m", help="Format output as Logseq Markdown"),
     chat_names: list[str] = typer.Argument(None, help="Partial name of a chat"),
 ) -> None:
     """List messages of multiple chats, as JSON."""
-    json_dict = fetch_messages(limit, start_date, chat_names)
+    meta, message_list = fetch_messages(limit, start_date, chat_names)
+    if markdown:
+        dump_as_logseq_markdown(message_list)
+        return
+
+    json_dict = {"meta": meta, "data": [asdict(msg) for msg in message_list]}
     typer.echo(dumps(json_dict, option=OPT_SORT_KEYS | OPT_OMIT_MICROSECONDS))
