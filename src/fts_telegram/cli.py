@@ -52,7 +52,7 @@ def chats(
 @app.command()
 def messages(
     limit: int = typer.Option(
-        None,
+        10,
         "--limit",
         "-l",
         help="Limit the number of messages to return; 0 for no limit",

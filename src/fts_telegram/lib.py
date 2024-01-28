@@ -51,6 +51,11 @@ async def fetch_chats(partial_names: list[str]) -> list[Dialog]:
     """List chats by partial name (case-insensitive)."""
     dialogs = []
     async for dialog in telegram_client().iter_dialogs():
+        # If no names are provided, show all chats
+        if not partial_names:
+            dialogs.append(dialog)
+            continue
+
         for name in partial_names:
             if name.casefold() in dialog.name.casefold():
                 dialogs.append(dialog)
