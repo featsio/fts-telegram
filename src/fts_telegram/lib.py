@@ -111,7 +111,9 @@ async def fetch_messages(
             if msg.sender_id not in senders:
                 entity = await telegram_client().get_entity(msg.sender_id)
                 senders[msg.sender_id] = (
-                    entity.title if hasattr(entity, "title") else f"{entity.first_name} {entity.last_name}"
+                    entity.title
+                    if hasattr(entity, "title")
+                    else f"{entity.first_name or ''} {entity.last_name or ''}".strip()
                 )
 
             ms = MessageSchema(

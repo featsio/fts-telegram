@@ -52,10 +52,10 @@ def chats(
 @app.command()
 def messages(
     limit: int = typer.Option(
-        10,
+        None,
         "--limit",
         "-l",
-        help="Limit the number of messages to return; 0 for no limit",
+        help="Limit the number of messages to return. If not provided, defaults to 10 if no date is provided either.",
     ),
     start_date: str = typer.Option(
         None,
