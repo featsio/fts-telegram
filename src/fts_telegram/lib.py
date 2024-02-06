@@ -190,5 +190,5 @@ def dump_as_logseq_markdown(message_list: list[MessageSchema]) -> None:
                     and current_sender == msg.sender
                     and current_time == local_time(msg.dateSent)
                 ):
-                    typer.echo(msg.text)
+                    typer.echo(msg.text.replace("\n\n", "\n"))
                     msg = next(generator, None)
