@@ -63,6 +63,13 @@ async def fetch_chats(partial_names: list[str]) -> list[Dialog]:
 
 
 @dataclass(kw_only=True)
+class ConversationSchema:
+    """[Conversation - Schema.org Type](https://schema.org/Conversation)."""
+
+    headline: str
+
+
+@dataclass(kw_only=True)
 class MessageSchema:
     """[Message](https://schema.org/Message)."""
 
@@ -70,6 +77,7 @@ class MessageSchema:
     text: str
     sender: str
     dateSent: datetime
+    isPartOf: ConversationSchema
 
 
 @login_with_phone_password
@@ -100,6 +108,7 @@ async def fetch_messages(
     senders = {}
     messages = []
     for chat in await fetch_chats(chat_names):  # type: Dialog
+        conversation = ConversationSchema(headline=chat.name)
         async for msg in telegram_client().iter_messages(
             chat.id,
             limit=limit,
@@ -121,6 +130,7 @@ async def fetch_messages(
                 text=msg.message,
                 sender=senders[msg.sender_id],
                 dateSent=msg.date,
+                isPartOf=conversation,
             )
 
             # TODO: get other fields from the message
@@ -158,7 +168,11 @@ def dump_as_logseq_markdown(message_list: list[MessageSchema]) -> None:
     msg = next(generator, None)
     while msg:
         current_date = local_date(msg.dateSent)
-        typer.echo(f"- [[{current_date.strftime(LOGSEQ_DATE_FORMAT)}]]")
+        typer.echo(
+            f"- {local_time(msg.dateSent)}"
+            f" [[{current_date.strftime(LOGSEQ_DATE_FORMAT)}]]"
+            f" Telegram: {msg.isPartOf.headline}"
+        )
         while msg and current_date == local_date(msg.dateSent):
             current_sender = msg.sender
             print_sender = f"*{current_sender}*: "

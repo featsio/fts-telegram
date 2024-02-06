@@ -21,7 +21,11 @@ Telegram crawler for Feats.
     export TELEGRAM_PASSWORD=YourPasswordFromTelegramWebsite
     ```
 6. On the first execution, `fts-telegram` will use these environment variables to log in and create a `fts-telegram.session` file at the current directory.
-7. Occasionally, you will be asked to enter a login code sent to your Telegram.
+7. Occasionally, you will be asked on the CLI to enter a login code sent to your Telegram.
+    ```shell
+    Please enter the code you received:
+    Signed in successfully as <your name>; remember to not break the ToS or you will risk an account ban!
+    ```
 
 ## Usage
 
