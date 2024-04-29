@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from datetime import UTC
 from datetime import date
@@ -30,6 +31,7 @@ CURRENT_TZINFO = NOW.astimezone().tzinfo or UTC
 CURRENT_TZNAME = CURRENT_TZINFO.tzname(NOW)
 LOGSEQ_TIME_FORMAT = "**%H:%M**"
 LOGSEQ_DATE_FORMAT = "%A, %d.%m.%Y"
+WORDS_REGEX = re.compile(r"[A-Za-z]+|[\d:]+")
 
 
 def login_with_phone_password(func):
@@ -80,6 +82,27 @@ class MessageSchema:
     isPartOf: ConversationSchema
 
 
+def normalize_start_date(start_date: str) -> str:
+    """Normalize the start date.
+
+    1. split characters and numbers into words
+    2. add missing colon in the time
+    3. add 00:00 if no time is provided
+    """
+    words = []
+    for word in WORDS_REGEX.findall(start_date):  # type: str
+        if word.isdigit():
+            padded_number = f"{word:04}"
+            words.append(padded_number[:2] + ":" + padded_number[2:])
+        else:
+            words.append(word)
+
+    if len(words) == 1 and ":" not in words[0]:
+        words.append("00:00")
+
+    return " ".join(words)
+
+
 @login_with_phone_password
 async def fetch_messages(
     limit: int | None,
@@ -94,7 +117,7 @@ async def fetch_messages(
     """
     meta: dict[str, Any] = {"start_date": start_date, "chat_names": chat_names}
     if start_date:
-        parsed_start_date = maya.when(start_date, timezone=CURRENT_TZNAME).datetime()
+        parsed_start_date = maya.when(normalize_start_date(start_date), timezone=CURRENT_TZNAME).datetime()
         meta["parsed_start_date"] = parsed_start_date.isoformat()
         reverse = True
     else:
@@ -175,7 +198,7 @@ def dump_as_logseq_markdown(message_list: list[MessageSchema]) -> None:
         )
         while msg and current_date == local_date(msg.dateSent):
             current_sender = msg.sender
-            print_sender = f"*{current_sender}*: "
+            print_sender = f"_{current_sender}_: "
 
             while msg and current_date == local_date(msg.dateSent) and current_sender == msg.sender:
                 current_time = local_time(msg.dateSent)
