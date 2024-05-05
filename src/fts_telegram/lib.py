@@ -31,7 +31,7 @@ CURRENT_TZINFO = NOW.astimezone().tzinfo or UTC
 CURRENT_TZNAME = CURRENT_TZINFO.tzname(NOW)
 LOGSEQ_TIME_FORMAT = "**%H:%M**"
 LOGSEQ_DATE_FORMAT = "%A, %d.%m.%Y"
-WORDS_REGEX = re.compile(r"[A-Za-z]+|[\d:]+")
+WORDS_REGEX = re.compile(r"[A-Za-z]+|[-\d:]+")
 
 
 def login_with_phone_password(func):
@@ -88,11 +88,26 @@ def normalize_start_date(start_date: str) -> str:
     1. split characters and numbers into words
     2. add missing colon in the time
     3. add 00:00 if no time is provided
+
+    >>> normalize_start_date("1may1120")
+    '1 may 11:20'
+
+    >>> normalize_start_date("today1032")
+    'today 10:32'
+
+    >>> normalize_start_date("2024-05-01")
+    '2024-05-01 00:00'
+
+    >>> normalize_start_date("2024-02-02 930")
+    '2024-02-02 09:30'
+
+    >>> normalize_start_date("2 Apr 134")
+    '2 Apr 01:34'
     """
     words = []
     for word in WORDS_REGEX.findall(start_date):  # type: str
-        if word.isdigit():
-            padded_number = f"{word:04}"
+        if word.isdigit() and len(word) >= 3:
+            padded_number = f"{word:0>4}"
             words.append(padded_number[:2] + ":" + padded_number[2:])
         else:
             words.append(word)
@@ -194,7 +209,7 @@ def dump_as_logseq_markdown(message_list: list[MessageSchema]) -> None:
         typer.echo(
             f"- {local_time(msg.dateSent)}"
             f" [[{current_date.strftime(LOGSEQ_DATE_FORMAT)}]]"
-            f" Telegram: {msg.isPartOf.headline}"
+            f" Telegram: {msg.isPartOf.headline}",
         )
         while msg and current_date == local_date(msg.dateSent):
             current_sender = msg.sender
