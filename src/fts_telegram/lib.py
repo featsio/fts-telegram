@@ -28,6 +28,7 @@ def telegram_client() -> TelegramClient:
 
 NOW = datetime.now(tz=UTC)
 CURRENT_TZINFO = NOW.astimezone().tzinfo or UTC
+# TODO: didn't work when tz was "America/Sao_Paulo", I had to set manually
 CURRENT_TZNAME = CURRENT_TZINFO.tzname(NOW)
 LOGSEQ_TIME_FORMAT = "**%H:%M**"
 LOGSEQ_DATE_FORMAT = "%A, %d.%m.%Y"
@@ -228,5 +229,5 @@ def dump_as_logseq_markdown(message_list: list[MessageSchema]) -> None:
                     and current_sender == msg.sender
                     and current_time == local_time(msg.dateSent)
                 ):
-                    typer.echo(msg.text.replace("\n\n", "\n"))
+                    typer.echo((msg.text or "").replace("\n\n", "\n"))
                     msg = next(generator, None)
