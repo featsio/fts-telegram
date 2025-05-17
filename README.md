@@ -20,7 +20,7 @@ Telegram crawler for Feats.
     export TELEGRAM_API_HASH=1234567890abcdef1234567890abcdef
     export TELEGRAM_PASSWORD=YourPasswordFromTelegramWebsite
     ```
-6. On the first execution, `fts-telegram` will use these environment variables to log in and create a `fts-telegram.session` file at the current directory.
+6. On the first execution, `fts-telegram` will use these environment variables to log in and create a `fts-telegram.session` file on your home directory.
 7. Occasionally, you will be asked on the CLI to enter a login code sent to your Telegram.
     ```shell
     Please enter the code you received:

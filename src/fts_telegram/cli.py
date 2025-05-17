@@ -14,6 +14,7 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
+
 from __future__ import annotations
 
 from dataclasses import asdict
@@ -64,10 +65,15 @@ def messages(
         help="Start date in YYYY-MM-DD format or English (today, yesterday...). If not provided, defaults to now.",
     ),
     markdown: bool = typer.Option(False, "--markdown", "-m", help="Format output as Logseq Markdown"),
+    saved: bool = typer.Option(False, "--saved", help="Read messages from 'Saved Messages' chat"),
     chat_names: list[str] = typer.Argument(None, help="Partial name of a chat"),
 ) -> None:
     """List messages of multiple chats, as JSON."""
-    meta, message_list = fetch_messages(limit, start_date, chat_names)
+    if not chat_names and not saved:
+        typer.echo("You must specify at least one chat or --saved.")
+        raise typer.Abort
+
+    meta, message_list = fetch_messages(limit, start_date, chat_names, saved)
     if markdown:
         dump_as_logseq_markdown(message_list)
         return

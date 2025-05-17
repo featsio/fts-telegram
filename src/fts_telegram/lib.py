@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from datetime import UTC
 from datetime import date
 from datetime import datetime
 from functools import cache
 from functools import wraps
+from pathlib import Path
 from typing import Any
 
 import maya
@@ -23,7 +25,9 @@ def telegram_client() -> TelegramClient:
 
     Use your own values from https://my.telegram.org/apps.
     """
-    return TelegramClient("fts-telegram", int(os.environ["TELEGRAM_API_ID"]), os.environ["TELEGRAM_API_HASH"])
+    return TelegramClient(
+        str(Path.home() / "fts-telegram"), int(os.environ["TELEGRAM_API_ID"]), os.environ["TELEGRAM_API_HASH"]
+    )
 
 
 NOW = datetime.now(tz=UTC)
@@ -80,7 +84,15 @@ class MessageSchema:
     text: str
     sender: str
     dateSent: datetime
+    datePublished: datetime | None = None
     isPartOf: ConversationSchema
+    url: str | None = None
+
+
+@dataclass(kw_only=True)
+class TelegramEntity:
+    title: str
+    username: str
 
 
 def normalize_start_date(start_date: str) -> str:
@@ -124,14 +136,17 @@ async def fetch_messages(
     limit: int | None,
     start_date: str | None,
     chat_names: list[str],
+    saved: bool = False,
 ) -> tuple[dict, list[MessageSchema]]:
     """Fetch message history from multiple chats.
 
     If both limit and start date are empty, set limit to 10.
 
-    https://docs.telethon.dev/en/latest/modules/client.html#telethon.client.messages.MessageMethods.iter_messages
+    If saved is True, fetches messages from the "Saved Messages" chat instead of the chats specified in chat_names.
+
+    https://docs.telethon.dev/en/stable/modules/client.html#telethon.client.messages.MessageMethods.iter_messages
     """
-    meta: dict[str, Any] = {"start_date": start_date, "chat_names": chat_names}
+    meta: dict[str, Any] = {"start_date": start_date, "chat_names": chat_names, "saved_messages": saved}
     if start_date:
         parsed_start_date = maya.when(normalize_start_date(start_date), timezone=CURRENT_TZNAME).datetime()
         meta["parsed_start_date"] = parsed_start_date.isoformat()
@@ -144,43 +159,72 @@ async def fetch_messages(
     meta["limit"] = limit
     meta["tz"] = CURRENT_TZNAME
 
-    senders = {}
+    senders: dict[str, TelegramEntity] = {}
     messages = []
-    for chat in await fetch_chats(chat_names):  # type: Dialog
-        conversation = ConversationSchema(headline=chat.name)
+
+    async def generate_chat_id_name() -> AsyncGenerator[tuple[int | str, str], None]:
+        if saved:
+            yield "me", "Saved Messages"
+            return
+        for chat in await fetch_chats(chat_names):  # type: Dialog
+            yield chat.id, chat.name
+
+    # Fetch messages from specified chats
+    async for chat_id, chat_name in generate_chat_id_name():
+        conversation = ConversationSchema(headline=chat_name)
         async for msg in telegram_client().iter_messages(
-            chat.id,
+            chat_id,
             limit=limit,
             reverse=reverse,
             offset_date=parsed_start_date,
         ):
             assert isinstance(msg, Message)
 
-            if msg.sender_id not in senders:
-                entity = await telegram_client().get_entity(msg.sender_id)
-                senders[msg.sender_id] = (
-                    entity.title
-                    if hasattr(entity, "title")
-                    else f"{entity.first_name or ''} {entity.last_name or ''}".strip()
+            if msg.forward and msg.forward.from_id:
+                sender_or_channel_id = (
+                    msg.forward.from_id.channel_id if msg.forward.is_channel else msg.forward.from_id.user_id
                 )
+            else:
+                sender_or_channel_id = msg.sender_id
+
+            if sender_or_channel_id not in senders:
+                entity = await telegram_client().get_entity(sender_or_channel_id)
+                sender = TelegramEntity(
+                    title=(
+                        entity.title
+                        if hasattr(entity, "title")
+                        else f"{entity.first_name or ''} {entity.last_name or ''}".strip()
+                    ),
+                    username=entity.username,
+                )
+                senders[sender_or_channel_id] = sender
+            else:
+                sender = senders[sender_or_channel_id]
+
+            identifier = str(msg.id)
+
+            url = None
+            if msg.forward:
+                unique_id = msg.forward.channel_post
+                if unique_id:
+                    url = f"https://t.me/{sender.username}/{unique_id}"
+                    identifier = unique_id
+
+            text = msg.text
+            if preview := msg.web_preview:
+                text += f"\n{preview.site_name}: {preview.title}\n{preview.description}"
 
             ms = MessageSchema(
-                identifier=str(msg.id),
-                text=msg.message,
-                sender=senders[msg.sender_id],
+                identifier=identifier,
+                text=text,
+                sender=sender.title,
                 dateSent=msg.date,
                 isPartOf=conversation,
+                datePublished=msg.forward.date if msg.forward else None,
+                url=url,
             )
 
             # TODO: get other fields from the message
-            # url = ""
-            # from_id = msg.fwd_from.from_id if msg.fwd_from else None
-            # if from_id:
-            #     msg_id = msg.fwd_from.channel_post
-            #
-            #     channel = await CLIENT.get_entity(from_id)
-            #     url = f"https://t.me/{channel.username}/{msg_id}"
-            #
             # extra = ""
             # saved_from_peer = msg.fwd_from.saved_from_peer if msg.fwd_from else None
             # if saved_from_peer and saved_from_peer != from_id:
@@ -206,18 +250,22 @@ def dump_as_logseq_markdown(message_list: list[MessageSchema]) -> None:
     generator = (m for m in message_list)
     msg = next(generator, None)
     while msg:
-        current_date = local_date(msg.dateSent)
+        current_date = local_date(msg.datePublished or msg.dateSent)
         typer.echo(
-            f"- {local_time(msg.dateSent)}"
+            f"- {local_time(msg.datePublished or msg.dateSent)}"
             f" [[{current_date.strftime(LOGSEQ_DATE_FORMAT)}]]"
             f" Telegram: {msg.isPartOf.headline}",
         )
-        while msg and current_date == local_date(msg.dateSent):
+        typer.echo("  collapsed:: true")
+
+        while msg and current_date == local_date(msg.datePublished or msg.dateSent):
             current_sender = msg.sender
             print_sender = f"_{current_sender}_: "
 
-            while msg and current_date == local_date(msg.dateSent) and current_sender == msg.sender:
-                current_time = local_time(msg.dateSent)
+            while (
+                msg and current_date == local_date(msg.datePublished or msg.dateSent) and current_sender == msg.sender
+            ):
+                current_time = local_time(msg.datePublished or msg.dateSent)
                 typer.echo(f"  - {current_time} {print_sender}", nl=False)
 
                 # The same person can send multiple messages in a row, so we print the sender only when it changes
@@ -225,9 +273,11 @@ def dump_as_logseq_markdown(message_list: list[MessageSchema]) -> None:
 
                 while (
                     msg
-                    and current_date == local_date(msg.dateSent)
+                    and current_date == local_date(msg.datePublished or msg.dateSent)
                     and current_sender == msg.sender
-                    and current_time == local_time(msg.dateSent)
+                    and current_time == local_time(msg.datePublished or msg.dateSent)
                 ):
-                    typer.echo((msg.text or "").replace("\n\n", "\n"))
+                    output = f"[{msg.identifier}]({msg.url}) " if msg.url else ""
+                    output += (msg.text or "").replace("\n\n", "\n").replace("\n", "\n    - ")
+                    typer.echo(output)
                     msg = next(generator, None)
