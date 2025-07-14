@@ -66,6 +66,7 @@ def messages(
     ),
     markdown: bool = typer.Option(False, "--markdown", "-m", help="Format output as Logseq Markdown"),
     saved: bool = typer.Option(False, "--saved", help="Read messages from 'Saved Messages' chat"),
+    collapsed: bool = typer.Option(False, "--collapsed", help="Collapse messages in Logseq Markdown output"),
     chat_names: list[str] = typer.Argument(None, help="Partial name of a chat"),
 ) -> None:
     """List messages of multiple chats, as JSON."""
@@ -75,7 +76,7 @@ def messages(
 
     meta, message_list = fetch_messages(limit, start_date, chat_names, saved)
     if markdown:
-        dump_as_logseq_markdown(message_list)
+        dump_as_logseq_markdown(message_list, collapsed)
         return
 
     json_dict = {"meta": meta, "data": [asdict(msg) for msg in message_list]}

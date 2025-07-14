@@ -236,7 +236,7 @@ async def fetch_messages(
     return meta, messages if reverse else list(reversed(messages))
 
 
-def dump_as_logseq_markdown(message_list: list[MessageSchema]) -> None:
+def dump_as_logseq_markdown(message_list: list[MessageSchema], collapsed: bool = False) -> None:
     """Dump messages to stdout as Logseq Markdown."""
 
     @cache
@@ -256,7 +256,8 @@ def dump_as_logseq_markdown(message_list: list[MessageSchema]) -> None:
             f" [[{current_date.strftime(LOGSEQ_DATE_FORMAT)}]]"
             f" Telegram: {msg.isPartOf.headline}",
         )
-        typer.echo("  collapsed:: true")
+        if collapsed:
+            typer.echo("  collapsed:: true")
 
         while msg and current_date == local_date(msg.datePublished or msg.dateSent):
             current_sender = msg.sender
