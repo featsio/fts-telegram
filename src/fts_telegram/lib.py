@@ -5,7 +5,6 @@ import re
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from datetime import UTC
-from datetime import date
 from datetime import datetime
 from functools import cache
 from functools import wraps
@@ -13,7 +12,6 @@ from pathlib import Path
 from typing import Any
 
 import maya
-import typer
 from telethon import TelegramClient
 from telethon.tl.custom import Dialog
 from telethon.tl.custom import Message
@@ -34,8 +32,6 @@ NOW = datetime.now(tz=UTC)
 CURRENT_TZINFO = NOW.astimezone().tzinfo or UTC
 # TODO: didn't work when tz was "America/Sao_Paulo", I had to set manually
 CURRENT_TZNAME = CURRENT_TZINFO.tzname(NOW)
-LOGSEQ_TIME_FORMAT = "**%H:%M**"
-LOGSEQ_DATE_FORMAT = "%A, %d.%m.%Y"
 WORDS_REGEX = re.compile(r"[A-Za-z]+|[-\d:]+")
 
 
@@ -234,51 +230,3 @@ async def fetch_messages(
             messages.append(ms)
     meta["count"] = len(messages)
     return meta, messages if reverse else list(reversed(messages))
-
-
-def dump_as_logseq_markdown(message_list: list[MessageSchema], collapsed: bool = False) -> None:
-    """Dump messages to stdout as Logseq Markdown."""
-
-    @cache
-    def local_date(dt: datetime) -> date:
-        return dt.astimezone(CURRENT_TZINFO).date()
-
-    @cache
-    def local_time(dt: datetime) -> str:
-        return dt.astimezone(CURRENT_TZINFO).strftime(LOGSEQ_TIME_FORMAT)
-
-    generator = (m for m in message_list)
-    msg = next(generator, None)
-    while msg:
-        current_date = local_date(msg.datePublished or msg.dateSent)
-        typer.echo(
-            f"- {local_time(msg.datePublished or msg.dateSent)}"
-            f" [[{current_date.strftime(LOGSEQ_DATE_FORMAT)}]]"
-            f" Telegram: {msg.isPartOf.headline}",
-        )
-        if collapsed:
-            typer.echo("  collapsed:: true")
-
-        while msg and current_date == local_date(msg.datePublished or msg.dateSent):
-            current_sender = msg.sender
-            print_sender = f"_{current_sender}_: "
-
-            while (
-                msg and current_date == local_date(msg.datePublished or msg.dateSent) and current_sender == msg.sender
-            ):
-                current_time = local_time(msg.datePublished or msg.dateSent)
-                typer.echo(f"  - {current_time} {print_sender}", nl=False)
-
-                # The same person can send multiple messages in a row, so we print the sender only when it changes
-                print_sender = ""
-
-                while (
-                    msg
-                    and current_date == local_date(msg.datePublished or msg.dateSent)
-                    and current_sender == msg.sender
-                    and current_time == local_time(msg.datePublished or msg.dateSent)
-                ):
-                    output = f"[{msg.identifier}]({msg.url}) " if msg.url else ""
-                    output += (msg.text or "").replace("\n\n", "\n").replace("\n", "\n    - ")
-                    typer.echo(output)
-                    msg = next(generator, None)

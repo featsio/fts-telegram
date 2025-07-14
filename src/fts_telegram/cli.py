@@ -24,7 +24,6 @@ from orjson import OPT_OMIT_MICROSECONDS
 from orjson import OPT_SORT_KEYS
 from orjson import dumps
 
-from fts_telegram.lib import dump_as_logseq_markdown
 from fts_telegram.lib import fetch_chats
 from fts_telegram.lib import fetch_messages
 
@@ -64,9 +63,7 @@ def messages(
         "-s",
         help="Start date in YYYY-MM-DD format or English (today, yesterday...). If not provided, defaults to now.",
     ),
-    markdown: bool = typer.Option(False, "--markdown", "-m", help="Format output as Logseq Markdown"),
     saved: bool = typer.Option(False, "--saved", help="Read messages from 'Saved Messages' chat"),
-    collapsed: bool = typer.Option(False, "--collapsed", help="Collapse messages in Logseq Markdown output"),
     chat_names: list[str] = typer.Argument(None, help="Partial name of a chat"),
 ) -> None:
     """List messages of multiple chats, as JSON."""
@@ -75,9 +72,5 @@ def messages(
         raise typer.Abort
 
     meta, message_list = fetch_messages(limit, start_date, chat_names, saved)
-    if markdown:
-        dump_as_logseq_markdown(message_list, collapsed)
-        return
-
     json_dict = {"meta": meta, "data": [asdict(msg) for msg in message_list]}
     typer.echo(dumps(json_dict, option=OPT_SORT_KEYS | OPT_OMIT_MICROSECONDS))
