@@ -19,7 +19,7 @@ repos:
     hooks:
       - id: mypy
         args: [ --show-error-codes ]
-        additional_dependencies: [ typer, orjson, types-tzlocal ]
+        additional_dependencies: [ typer, orjson, types-tzlocal, telethon, maya, tzlocal, "." ]
         exclude: ci/.+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0

@@ -8,4 +8,5 @@ def test_main():
     result = runner.invoke(app, [])
 
     assert "Telegram crawler for Feats" in result.output
-    assert result.exit_code == 0
+    # Exit code 2 is expected when no_args_is_help=True and no arguments are provided
+    assert result.exit_code == 2
