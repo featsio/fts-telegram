@@ -15,6 +15,7 @@ import maya
 from telethon import TelegramClient
 from telethon.tl.custom import Dialog
 from telethon.tl.custom import Message
+from tzlocal import get_localzone_name
 
 
 @cache
@@ -30,8 +31,8 @@ def telegram_client() -> TelegramClient:
 
 NOW = datetime.now(tz=UTC)
 CURRENT_TZINFO = NOW.astimezone().tzinfo or UTC
-# TODO: didn't work when tz was "America/Sao_Paulo", I had to set manually
-CURRENT_TZNAME = CURRENT_TZINFO.tzname(NOW)
+# Get the IANA timezone name (e.g., 'America/Sao_Paulo') instead of the abbreviation (e.g., '-03')
+CURRENT_TZNAME = get_localzone_name()
 WORDS_REGEX = re.compile(r"[A-Za-z]+|[-\d:]+")
 
 
