@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import re
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from datetime import UTC
 from datetime import datetime
-from functools import cache
-from functools import wraps
 from pathlib import Path
 from typing import Any
 
@@ -18,8 +17,7 @@ from telethon.tl.custom import Message
 from tzlocal import get_localzone_name
 
 
-@cache
-def telegram_client() -> TelegramClient:
+def _make_client() -> TelegramClient:
     """Return a TelegramClient instance.
 
     Use your own values from https://my.telegram.org/apps.
@@ -36,34 +34,29 @@ CURRENT_TZNAME = get_localzone_name()
 WORDS_REGEX = re.compile(r"[A-Za-z]+|[-\d:]+")
 
 
-def login_with_phone_password(func):
-    """Login with phone and password."""
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if telegram_client().loop.is_running():
-            return func(*args, **kwargs)
-
-        telegram_client().start(lambda: os.environ["TELEGRAM_PHONE"], lambda: os.environ["TELEGRAM_PASSWORD"])
-        return telegram_client().loop.run_until_complete(func(*args, **kwargs))
-
-    return wrapper
+async def _with_client(coro):
+    """Start a client, run coro(client), then disconnect."""
+    client = _make_client()
+    async with client:
+        await client.start(lambda: os.environ["TELEGRAM_PHONE"], lambda: os.environ["TELEGRAM_PASSWORD"])
+        return await coro(client)
 
 
-@login_with_phone_password
-async def fetch_chats(partial_names: list[str]) -> list[Dialog]:
-    """List chats by partial name (case-insensitive)."""
+async def _iter_chats(client: TelegramClient, partial_names: list[str]) -> list[Dialog]:
     dialogs = []
-    async for dialog in telegram_client().iter_dialogs():
-        # If no names are provided, show all chats
+    async for dialog in client.iter_dialogs():
         if not partial_names:
             dialogs.append(dialog)
             continue
-
         for name in partial_names:
             if name.casefold() in dialog.name.casefold():
                 dialogs.append(dialog)
     return dialogs
+
+
+def fetch_chats(partial_names: list[str]) -> list[Dialog]:
+    """List chats by partial name (case-insensitive)."""
+    return asyncio.run(_with_client(lambda client: _iter_chats(client, partial_names)))
 
 
 @dataclass(kw_only=True)
@@ -128,21 +121,13 @@ def normalize_start_date(start_date: str) -> str:
     return " ".join(words)
 
 
-@login_with_phone_password
-async def fetch_messages(
+async def _fetch_messages_async(
+    client: TelegramClient,
     limit: int | None,
     start_date: str | None,
     chat_names: list[str],
-    saved: bool = False,
+    saved: bool,
 ) -> tuple[dict, list[MessageSchema]]:
-    """Fetch message history from multiple chats.
-
-    If both limit and start date are empty, set limit to 10.
-
-    If saved is True, fetches messages from the "Saved Messages" chat instead of the chats specified in chat_names.
-
-    https://docs.telethon.dev/en/stable/modules/client.html#telethon.client.messages.MessageMethods.iter_messages
-    """
     meta: dict[str, Any] = {"start_date": start_date, "chat_names": chat_names, "saved_messages": saved}
     if start_date:
         parsed_start_date = maya.when(normalize_start_date(start_date), timezone=CURRENT_TZNAME).datetime()
@@ -163,13 +148,13 @@ async def fetch_messages(
         if saved:
             yield "me", "Saved Messages"
             return
-        for chat in await fetch_chats(chat_names):  # type: Dialog
+        for chat in await _iter_chats(client, chat_names):  # type: Dialog
             yield chat.id, chat.name
 
     # Fetch messages from specified chats
     async for chat_id, chat_name in generate_chat_id_name():
         conversation = ConversationSchema(headline=chat_name)
-        async for msg in telegram_client().iter_messages(
+        async for msg in client.iter_messages(
             chat_id,
             limit=limit,
             reverse=reverse,
@@ -185,7 +170,7 @@ async def fetch_messages(
                 sender_or_channel_id = msg.sender_id
 
             if sender_or_channel_id not in senders:
-                entity = await telegram_client().get_entity(sender_or_channel_id)
+                entity = await client.get_entity(sender_or_channel_id)
                 sender = TelegramEntity(
                     title=(
                         entity.title
@@ -231,3 +216,20 @@ async def fetch_messages(
             messages.append(ms)
     meta["count"] = len(messages)
     return meta, messages if reverse else list(reversed(messages))
+
+
+def fetch_messages(
+    limit: int | None,
+    start_date: str | None,
+    chat_names: list[str],
+    saved: bool = False,
+) -> tuple[dict, list[MessageSchema]]:
+    """Fetch message history from multiple chats.
+
+    If both limit and start date are empty, set limit to 10.
+
+    If saved is True, fetches messages from the "Saved Messages" chat instead of the chats specified in chat_names.
+
+    https://docs.telethon.dev/en/stable/modules/client.html#telethon.client.messages.MessageMethods.iter_messages
+    """
+    return asyncio.run(_with_client(lambda client: _fetch_messages_async(client, limit, start_date, chat_names, saved)))
