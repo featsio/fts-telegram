@@ -12,7 +12,7 @@ dev = [
 name = "fts-telegram"
 version = "0.0.0"
 description = "Telegram crawler for Feats"
-authors = [{name = "W. Augusto Andreoli", email = "andreoli@sent.com"}]
+authors = [{ name = "W. Augusto Andreoli", email = "andreoli@sent.com" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
